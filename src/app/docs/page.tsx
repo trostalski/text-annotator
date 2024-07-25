@@ -17,7 +17,7 @@ export default function Docs() {
               </p>
               <h2 className="text-2xl font-semibold mb-3">Features</h2>
               <ul className="list-disc list-inside mb-4">
-                <li>Upload text files or PDFs to annotate</li>
+                <li>Upload text files to annotate</li>
                 <li>Select text to create annotations</li>
                 <li>Customizable JSON structure for annotations</li>
                 <li>Export annotations as a JSON file</li>
