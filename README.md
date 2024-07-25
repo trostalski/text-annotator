@@ -1,3 +1,9 @@
+# Problem Statement
+Creating annotations, each requiring distinct metadata and content, distributed across a source document.
+
+# Website
+https://text-json-annotator.vercel.app/
+
 # Features
 
 - Upload text files to create json based annotations.
