@@ -28,11 +28,11 @@ export default function RootLayout({
           content="A simple tool for creating text annotations."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://yourwebsite.com" />
-        <meta
+        {/* <meta property="og:url" content="https://yourwebsite.com" /> */}
+        {/* <meta
           property="og:image"
           content="https://yourwebsite.com/og-image.jpg"
-        />
+        /> */}
         <link rel="icon" href="/favicon.ico" />
         <link
           rel="stylesheet"

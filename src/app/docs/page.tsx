@@ -4,8 +4,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 export default function Docs() {
   return (
     <div className="flex h-full bg-gray-100">
-      <main className="flex-1 ">
-        <ScrollArea className="h-full p-6 overflow-auto bg-white shadow-lg">
+      <main className="flex-1">
+        <ScrollArea className="h-full p-6 overflow-auto bg-white shadow-lg prose">
           <div className="max-w-4xl mx-auto">
             <div className="bg-white p-6 rounded-lg border border-gray-200">
               <h1 className="text-3xl font-bold mb-4">
@@ -33,16 +33,16 @@ export default function Docs() {
                   your mouse over it.
                 </li>
                 <li className="mb-2">
-                  Click the "Create Annotation" button to create an annotation
-                  for the selected text.
+                  Click the &quot;Create Annotation&quot; button to create an
+                  annotation for the selected text.
                 </li>
                 <li className="mb-2">
                   Customize the JSON structure of the annotations in the JSON
                   Configuration section.
                 </li>
                 <li className="mb-2">
-                  Export your annotations as a JSON file by clicking the "Export
-                  Annotations" button.
+                  Export your annotations as a JSON file by clicking the
+                  &quot;Export Annotations&quot; button.
                 </li>
                 <li className="mb-2">
                   To remove a selection, simply select the same text again.
