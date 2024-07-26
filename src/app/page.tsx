@@ -19,6 +19,7 @@ interface Annotation {
 
 export default function Home() {
   const [text, setText] = useState<string>("");
+  const [dataLoaded, setDataLoaded] = useState<boolean>(false);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [currentSelection, setCurrentSelection] = useState<
     { start: number; end: number }[]
@@ -51,6 +52,7 @@ export default function Home() {
       if (savedText) setText(savedText);
       if (savedAnnotations) setAnnotations(savedAnnotations);
       if (savedJsonConfig) setJsonConfig(savedJsonConfig);
+      setDataLoaded(true);
     };
 
     loadData();
@@ -60,28 +62,28 @@ export default function Home() {
     const saveText = async () => {
       await saveData("annotationText", text);
     };
-    if (text) {
+    if (dataLoaded) {
       saveText();
     }
-  }, [text]);
+  }, [text, dataLoaded]);
 
   useEffect(() => {
     const saveAnnotations = async () => {
       await saveData("annotations", annotations);
     };
-    if (annotations.length > 0) {
+    if (dataLoaded) {
       saveAnnotations();
     }
-  }, [annotations]);
+  }, [annotations, dataLoaded]);
 
   useEffect(() => {
     const saveJsonConfig = async () => {
       await saveData("jsonConfig", jsonConfig);
     };
-    if (jsonConfig) {
+    if (dataLoaded) {
       saveJsonConfig();
     }
-  }, [jsonConfig]);
+  }, [jsonConfig, dataLoaded]);
 
   const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
