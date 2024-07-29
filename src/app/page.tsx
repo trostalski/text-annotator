@@ -260,21 +260,27 @@ export default function Home() {
   };
 
   const exportAnnotations = () => {
-    const dataStr = JSON.stringify(
-      annotations.map((ann) => JSON.parse(ann.json)),
-      null,
-      2
-    );
+    const sanitizedAnnotations = annotations
+      .map((ann) => {
+        try {
+          // Attempt to parse and stringify to remove any invalid characters
+          return JSON.parse(JSON.stringify(JSON.parse(ann.json)));
+        } catch (error: any) {
+          console.error(`Error parsing annotation: ${error.message}`);
+          return null; // Return null for invalid annotations
+        }
+      })
+      .filter(Boolean); // Remove null entries
+
+    const dataStr = JSON.stringify(sanitizedAnnotations, null, 2);
     const dataUri =
       "data:application/json;charset=utf-8," + encodeURIComponent(dataStr);
     const exportFileDefaultName = "annotations.json";
-
     const linkElement = document.createElement("a");
     linkElement.setAttribute("href", dataUri);
     linkElement.setAttribute("download", exportFileDefaultName);
     linkElement.click();
   };
-
   const highlightTemplateFeatures = (json: string) => {
     const regex = /{{\s*(text|start|end|length)\s*}}/g;
     return json.replace(regex, '<span class="bg-green-200">$&</span>');
