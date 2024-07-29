@@ -186,12 +186,14 @@ export default function Home() {
         id: getUniqueID(),
         start: range.start,
         end: range.end,
-        text: text.substring(range.start, range.end),
+        text: sanitizeJsonString(text.substring(range.start, range.end)),
       }));
+
+      const sanitizedText = ranges.map((r) => r.text).join(" ");
 
       const newAnnotationJson = applyTemplate(jsonConfig, {
         id: getUniqueID(),
-        text: ranges.map((r) => r.text).join(" "),
+        text: sanitizedText,
         start: ranges[0].start,
         end: ranges[ranges.length - 1].end,
         length: ranges.map((r) => r.end - r.start).reduce((a, b) => a + b, 0),
@@ -199,7 +201,7 @@ export default function Home() {
 
       const newAnnotation: Annotation = {
         id: getUniqueID(),
-        text: ranges.map((r) => r.text).join(" "),
+        text: sanitizedText,
         ranges: currentSelection,
         json: newAnnotationJson,
       };
@@ -209,6 +211,14 @@ export default function Home() {
     }
   };
 
+  // Helper function to sanitize JSON strings
+  const sanitizeJsonString = (str: string): string => {
+    return str
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, "") // Remove control characters
+      .replace(/\\(?!["\\/bfnrt])/g, "\\\\") // Escape backslashes
+      .replace(/"/g, '\\"') // Escape double quotes
+      .replace(/\//g, "\\/"); // Escape forward slashes
+  };
   const highlightText = () => {
     let result = [];
     let lastIndex = 0;
