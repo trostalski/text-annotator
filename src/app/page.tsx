@@ -7,6 +7,7 @@ import { saveData, getData } from "@/lib/indexedDB";
 import { useDropzone } from "react-dropzone";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
 
 interface Annotation {
   id: string;
@@ -16,16 +17,28 @@ interface Annotation {
   [key: string]: any;
 }
 
+interface Document {
+  id: string;
+  name: string;
+  text: string;
+  annotations: Annotation[];
+}
 const getUniqueID = () => {
   return Math.random().toString(36).substr(2, 9);
 };
 
 export default function Home() {
-  const [text, setText] = useState<string>("");
+  const [documents, setDocuments] = useState<Document[]>([]);
+  const [editingName, setEditingName] = useState(false);
+  const [currentDocumentId, setCurrentDocumentId] = useState<string | null>(
+    null
+  );
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
-  const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [currentSelection, setCurrentSelection] = useState<
-    { start: number; end: number }[]
+    {
+      start: number;
+      end: number;
+    }[]
   >([]);
   const textRef = useRef<HTMLDivElement>(null);
   const [jsonConfig, setJsonConfig] = useState<string>(`{
@@ -35,6 +48,93 @@ export default function Home() {
   "end": "{{ end }}"
 }`);
   const [isJsonValid, setIsJsonValid] = useState<boolean>(true);
+
+  useEffect(() => {
+    const loadData = async () => {
+      const savedDocuments = await getData("documents");
+      const savedCurrentDocumentId = await getData("currentDocumentId");
+      const savedJsonConfig = await getData("jsonConfig");
+
+      if (savedDocuments) setDocuments(savedDocuments);
+      if (savedCurrentDocumentId) setCurrentDocumentId(savedCurrentDocumentId);
+      if (savedJsonConfig) setJsonConfig(savedJsonConfig);
+      setDataLoaded(true);
+    };
+
+    loadData();
+  }, []);
+
+  useEffect(() => {
+    const saveDocuments = async () => {
+      await saveData("documents", documents);
+    };
+    if (dataLoaded) {
+      saveDocuments();
+    }
+  }, [documents, dataLoaded]);
+
+  useEffect(() => {
+    const saveCurrentDocumentId = async () => {
+      await saveData("currentDocumentId", currentDocumentId);
+    };
+    if (dataLoaded) {
+      saveCurrentDocumentId();
+    }
+  }, [currentDocumentId, dataLoaded]);
+
+  useEffect(() => {
+    const saveJsonConfig = async () => {
+      await saveData("jsonConfig", jsonConfig);
+    };
+    if (dataLoaded) {
+      saveJsonConfig();
+    }
+  }, [jsonConfig, dataLoaded]);
+
+  const createNewDocument = () => {
+    const newDocument: Document = {
+      id: getUniqueID(),
+      name: `New Document ${documents.length + 1}`,
+      text: "",
+      annotations: [],
+    };
+    setDocuments([...documents, newDocument]);
+    setCurrentDocumentId(newDocument.id);
+  };
+
+  const switchDocument = (documentId: string) => {
+    setCurrentDocumentId(documentId);
+  };
+
+  const getCurrentDocument = (): Document | undefined => {
+    return documents.find((doc) => doc.id === currentDocumentId);
+  };
+
+  const currentDocument = getCurrentDocument();
+  const text = currentDocument?.text || "";
+  const annotations = currentDocument?.annotations || [];
+
+  const setText = (newText: string) => {
+    if (currentDocument) {
+      setDocuments(
+        documents.map((doc) =>
+          doc.id === currentDocument.id ? { ...doc, text: newText } : doc
+        )
+      );
+    }
+  };
+
+  const setAnnotations = (newAnnotations: Annotation[]) => {
+    if (currentDocument) {
+      setDocuments(
+        documents.map((doc) =>
+          doc.id === currentDocument.id
+            ? { ...doc, annotations: newAnnotations }
+            : doc
+        )
+      );
+    }
+  };
 
   const handleJsonChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     let newValue = e.target.value;
@@ -47,48 +147,6 @@ export default function Home() {
     }
   };
 
-  useEffect(() => {
-    const loadData = async () => {
-      const savedText = await getData("annotationText");
-      const savedAnnotations = await getData("annotations");
-      const savedJsonConfig = await getData("jsonConfig");
-
-      if (savedText) setText(savedText);
-      if (savedAnnotations) setAnnotations(savedAnnotations);
-      if (savedJsonConfig) setJsonConfig(savedJsonConfig);
-      setDataLoaded(true);
-    };
-
-    loadData();
-  }, []);
-
-  useEffect(() => {
-    const saveText = async () => {
-      await saveData("annotationText", text);
-    };
-    if (dataLoaded) {
-      saveText();
-    }
-  }, [text, dataLoaded]);
-
-  useEffect(() => {
-    const saveAnnotations = async () => {
-      await saveData("annotations", annotations);
-    };
-    if (dataLoaded) {
-      saveAnnotations();
-    }
-  }, [annotations, dataLoaded]);
-
-  useEffect(() => {
-    const saveJsonConfig = async () => {
-      await saveData("jsonConfig", jsonConfig);
-    };
-    if (dataLoaded) {
-      saveJsonConfig();
-    }
-  }, [jsonConfig, dataLoaded]);
-
   const onDrop = (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
@@ -96,8 +154,14 @@ export default function Home() {
       reader.onload = async (e: ProgressEvent<FileReader>) => {
         if (e.target?.result) {
           const content = e.target.result as string;
-          setText(content);
-          await saveData("annotationText", content);
+          const newDocument: Document = {
+            id: getUniqueID(),
+            name: file.name,
+            text: content,
+            annotations: [],
+          };
+          setDocuments([...documents, newDocument]);
+          setCurrentDocumentId(newDocument.id);
         }
       };
       reader.readAsText(file);
@@ -181,7 +245,7 @@ export default function Home() {
   };
 
   const createAnnotation = () => {
-    if (currentSelection.length > 0) {
+    if (currentSelection.length > 0 && currentDocument) {
       const ranges = currentSelection.map((range) => ({
         id: getUniqueID(),
         start: range.start,
@@ -206,7 +270,7 @@ export default function Home() {
         json: newAnnotationJson,
       };
 
-      setAnnotations((prev) => [...prev, newAnnotation]);
+      setAnnotations([...annotations, newAnnotation]);
       setCurrentSelection([]);
     }
   };
@@ -266,7 +330,7 @@ export default function Home() {
   };
 
   const deleteAnnotation = (id: string) => {
-    setAnnotations((prev) => prev.filter((ann) => ann.id !== id));
+    setAnnotations(annotations.filter((ann) => ann.id !== id));
   };
 
   const exportAnnotations = () => {
@@ -296,6 +360,24 @@ export default function Home() {
     return json.replace(regex, '<span class="bg-green-200">$&</span>');
   };
 
+  const renameDocument = (id: string, newName: string) => {
+    setDocuments(
+      documents.map((doc) => (doc.id === id ? { ...doc, name: newName } : doc))
+    );
+  };
+
+  const resetCurrentDocument = () => {
+    if (currentDocument) {
+      setDocuments(
+        documents.map((doc) =>
+          doc.id === currentDocument.id
+            ? { ...doc, text: "", annotations: [] }
+            : doc
+        )
+      );
+    }
+  };
+
   return (
     <div className="flex h-full bg-gray-100">
       <main className="flex-1 ">
@@ -318,6 +400,59 @@ export default function Home() {
           </div>
           <div className="mt-4 max-w-4xl mx-auto">
             <div className="bg-white p-6 rounded-lg border border-gray-200">
+              <div className="mb-4 flex items-center">
+                <select
+                  value={currentDocumentId || ""}
+                  onChange={(e) => switchDocument(e.target.value)}
+                  className="mr-2 p-2 border rounded"
+                >
+                  <option value="" disabled>
+                    Select a document
+                  </option>
+                  {documents.map((doc) => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.name}
+                    </option>
+                  ))}
+                </select>
+                {currentDocument &&
+                  (editingName ? (
+                    <Input
+                      type="text"
+                      placeholder={currentDocument.name}
+                      value={currentDocument.name}
+                      onChange={(e) =>
+                        renameDocument(currentDocument.id, e.target.value)
+                      }
+                      onBlur={() => setEditingName(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          setEditingName(false);
+                        }
+                      }}
+                      autoFocus
+                      className="mr-2 p-2 border rounded"
+                    />
+                  ) : (
+                    <Button
+                      onClick={() => setEditingName(true)}
+                      variant={"secondary"}
+                      className="mr-2"
+                    >
+                      {currentDocument.name || "Untitled Document"}
+                    </Button>
+                  ))}
+                <Button onClick={createNewDocument} className="mr-2">
+                  New Document
+                </Button>
+                <Button
+                  onClick={resetCurrentDocument}
+                  className="bg-red-500 hover:bg-red-600 text-white"
+                  disabled={!currentDocument || !currentDocument.text}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Reset Document
+                </Button>
+              </div>
               <div className="mb-1">
                 <p className="text-muted-foreground text-xs">
                   Select text and press <kbd>Enter</kbd> to create an annotation
@@ -331,17 +466,6 @@ export default function Home() {
                   disabled={currentSelection.length === 0}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Create Annotation
-                </Button>
-                <Button
-                  onClick={() => {
-                    setText("");
-                    setAnnotations([]);
-                    setCurrentSelection([]);
-                  }}
-                  className="bg-red-500 hover:bg-red-600 text-white"
-                  disabled={!text}
-                >
-                  <Trash2 className="mr-2 h-4 w-4" /> Reset Text
                 </Button>
               </div>
               <div
@@ -357,7 +481,7 @@ export default function Home() {
                 ) : (
                   <p className="text-gray-400 italic">
                     No text uploaded yet. Use the drop zone above to upload a
-                    file.
+                    file or create a new document.
                   </p>
                 )}
               </div>
