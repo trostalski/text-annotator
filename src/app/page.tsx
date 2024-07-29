@@ -6,7 +6,6 @@ import { Trash2, Download, Plus, Upload } from "lucide-react";
 import { saveData, getData } from "@/lib/indexedDB";
 import { useDropzone } from "react-dropzone";
 import { Textarea } from "@/components/ui/textarea";
-import PropTypes from "prop-types";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Annotation {
@@ -17,6 +16,10 @@ interface Annotation {
   [key: string]: any;
 }
 
+const getUniqueID = () => {
+  return Math.random().toString(36).substr(2, 9);
+};
+
 export default function Home() {
   const [text, setText] = useState<string>("");
   const [dataLoaded, setDataLoaded] = useState<boolean>(false);
@@ -26,7 +29,8 @@ export default function Home() {
   >([]);
   const textRef = useRef<HTMLDivElement>(null);
   const [jsonConfig, setJsonConfig] = useState<string>(`{
-  "text": "{{ text }}",
+  "id": "{{ id }}",
+  "content": "{{ text }}",
   "start": "{{ start }}",
   "end": "{{ end }}"
 }`);
@@ -160,7 +164,7 @@ export default function Home() {
           if (isOverlapping === -1) {
             newSelection.push({ start, end });
           }
-          return newSelection;
+          return newSelection.sort((a, b) => a.start - b.start);
         });
       }
     }
@@ -179,12 +183,14 @@ export default function Home() {
   const createAnnotation = () => {
     if (currentSelection.length > 0) {
       const ranges = currentSelection.map((range) => ({
+        id: getUniqueID(),
         start: range.start,
         end: range.end,
         text: text.substring(range.start, range.end),
       }));
 
       const newAnnotationJson = applyTemplate(jsonConfig, {
+        id: getUniqueID(),
         text: ranges.map((r) => r.text).join(" "),
         start: ranges[0].start,
         end: ranges[ranges.length - 1].end,
@@ -192,7 +198,7 @@ export default function Home() {
       });
 
       const newAnnotation: Annotation = {
-        id: Date.now().toString(),
+        id: getUniqueID(),
         text: ranges.map((r) => r.text).join(" "),
         ranges: currentSelection,
         json: newAnnotationJson,
